@@ -1,0 +1,68 @@
+{
+	"id": 1,
+	"name": "Afghanistan",
+	"iso3": "AFG",
+	"iso2": "AF",
+	"numeric_code": "004",
+	"phonecode": "93",
+	"capital": "Kabul",
+	"currency": "AFN",
+	"currency_name": "Afghan afghani",
+	"currency_symbol": "؋",
+	"tld": ".af",
+	"native": "افغانستان",
+	"region": "Asia",
+	"region_id": 3,
+	"subregion": "Southern Asia",
+	"subregion_id": 14,
+	"nationality": "Afghan",
+	"timezones": [
+		{
+			"zoneName": "Asia\/Kabul",
+			"gmtOffset": 16200,
+			"gmtOffsetName": "UTC+04:30",
+			"abbreviation": "AFT",
+			"tzName": "Afghanistan Time"
+		}
+	],
+	"translations": {
+		"ko": "아프가니스탄",
+		"pt-BR": "Afeganistão",
+		"pt": "Afeganistão",
+		"nl": "Afghanistan",
+		"hr": "Afganistan",
+		"fa": "افغانستان",
+		"de": "Afghanistan",
+		"es": "Afganistán",
+		"fr": "Afghanistan",
+		"ja": "アフガニスタン",
+		"it": "Afghanistan",
+		"zh-CN": "阿富汗",
+		"tr": "Afganistan",
+		"ru": "Афганистан",
+		"uk": "Афганістан",
+		"pl": "Afganistan"
+	},
+	"latitude": "33.00000000",
+	"longitude": "65.00000000",
+	"emoji": "🇦🇫",
+	"emojiU": "U+1F1E6 U+1F1EB",
+	"states": [
+		{
+			"id": 3901,
+			"name": "Badakhshan",
+			"state_code": "BDS",
+			"latitude": "36.73477250",
+			"longitude": "70.81199530",
+			"type": "province",
+			"cities": [
+				{
+					"id": 52,
+					"name": "Ashkāsham",
+					"latitude": "36.68333000",
+					"longitude": "71.53333000"
+				}
+			]
+		}
+	]
+}

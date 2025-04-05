@@ -1,0 +1,112 @@
+// This is your Prisma schema file
+// Learn more about it at https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql" // You can change this to your preferred database
+  url      = env("DATABASE_URL")
+}
+
+model Country {
+  id              Int     @id @default(autoincrement())
+  name            String
+  iso3            String? @db.Char(3)
+  iso2            String? @db.Char(2)
+  numeric_code    String?
+  phonecode       String?
+  capital         String?
+  currency        String?
+  currency_name   String?
+  currency_symbol String?
+  tld             String?
+  native          String?
+  region          String?
+  region_id       Int?
+  subregion       String?
+  subregion_id    Int?
+  nationality     String?
+  latitude        String?
+  longitude       String?
+  emoji           String?
+  emojiU          String?
+
+  // Relations
+  timezones    Timezone[]
+  translations Translation?
+  states       State[]
+
+  @@map("countries")
+}
+
+model Timezone {
+  id            Int    @id @default(autoincrement())
+  zoneName      String
+  gmtOffset     Int
+  gmtOffsetName String
+  abbreviation  String
+  tzName        String
+
+  // Relations
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  countryId Int
+
+  @@map("timezones")
+}
+
+model Translation {
+  id   Int     @id @default(autoincrement())
+  ko   String?
+  ptBR String? @map("pt_BR")
+  pt   String?
+  nl   String?
+  hr   String?
+  fa   String?
+  de   String?
+  es   String?
+  fr   String?
+  ja   String?
+  it   String?
+  zhCN String? @map("zh_CN")
+  tr   String?
+  ru   String?
+  uk   String?
+  pl   String?
+
+  // Relations
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  countryId Int     @unique
+
+  @@map("translations")
+}
+
+model State {
+  id         Int     @id @default(autoincrement())
+  name       String
+  state_code String?
+  latitude   String?
+  longitude  String?
+  type       String?
+
+  // Relations
+  country   Country @relation(fields: [countryId], references: [id], onDelete: Cascade)
+  countryId Int
+  cities    City[]
+
+  @@map("states")
+}
+
+model City {
+  id        Int     @id @default(autoincrement())
+  name      String
+  latitude  String?
+  longitude String?
+
+  // Relations
+  state   State @relation(fields: [stateId], references: [id], onDelete: Cascade)
+  stateId Int
+
+  @@map("cities")
+}
