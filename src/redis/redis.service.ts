@@ -1,19 +1,19 @@
 import timer from '@/common/helpers/timer.helper';
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, RedisClientType } from 'redis';
 
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private client: RedisClientType;
+  private PROJECT_PREFIX = 'openapi:';
 
   constructor(private configService: ConfigService) {}
-
   async onModuleInit() {
-    const redisUrl = this.configService.get('REDIS_URL');
+    const redisUrl = this.configService.get<string>('REDIS_URL');
     const option = redisUrl
       ? {
-          url: this.configService.get('REDIS_URL'),
+          url: redisUrl,
         }
       : undefined;
     this.client = createClient(option);
@@ -38,7 +38,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    */
   async set(key: string, value: string, ttl: number | string): Promise<void> {
     const effectiveTTL = typeof ttl === 'string' ? timer(ttl) : ttl;
-    await this.client.setEx(key, effectiveTTL, value);
+    await this.client.setEx(this.PROJECT_PREFIX + key, effectiveTTL, value);
   }
 
   /**
@@ -47,7 +47,8 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @returns {Promise<string | null>} A promise that resolves with the value of the key or null if the key does not exist.
    */
   async get(key: string): Promise<string | null> {
-    return this.client.get(key);
+    const result = await this.client.get(this.PROJECT_PREFIX + key);
+    return result !== undefined && result !== null ? result : null;
   }
 
   /**
@@ -56,7 +57,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @returns {Promise<number>} A promise that resolves with the number of keys that were deleted.
    */
   async del(key: string): Promise<number> {
-    return this.client.del(key);
+    return this.client.del(this.PROJECT_PREFIX + key);
   }
 
   /**
@@ -89,8 +90,10 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
    * @returns {Promise<void>} A promise that resolves when all keys have been deleted.
    */
   async deleteAll(): Promise<void> {
-    const keys = await this.client.keys('*');
-    await Promise.all(keys.map((key) => this.del(key)));
+    const keys = await this.client.keys(this.PROJECT_PREFIX + '*');
+    await Promise.all(
+      keys.map((key) => this.del(key.replace(this.PROJECT_PREFIX, ''))),
+    );
   }
 
   /**
@@ -101,10 +104,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async delPattern(pattern: string): Promise<number> {
     let cursor = 0;
     let totalDeleted = 0;
-
     do {
       const found = await this.client.scan(cursor, {
-        MATCH: pattern,
+        MATCH: this.PROJECT_PREFIX + pattern,
         COUNT: 100,
       });
       const { keys, cursor: newCursor } = found;

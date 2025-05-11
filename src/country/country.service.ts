@@ -1,4 +1,5 @@
 import rawCountryData from '@/common/initial/country/countries.json';
+import { normalizeString } from '@/common/utils/string.utils';
 import { FilterCityDto } from '@/country/dto/filter-city.dto';
 import { FilterCountryDto } from '@/country/dto/filter-country.dto';
 import { FilterStateDto } from '@/country/dto/filter-state.dto';
@@ -8,16 +9,17 @@ import type { ICountry } from '@/types/country.types';
 import { Injectable } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 
-// @ts-ignore
-const countryData: ICountry[] = Array.isArray(rawCountryData) ? rawCountryData : Object.values(rawCountryData);
+// Cast to unknown first to avoid TypeScript errors with the structure
+const countryData: ICountry[] = Array.isArray(rawCountryData)
+  ? (rawCountryData as unknown as ICountry[])
+  : (Object.values(rawCountryData) as unknown as ICountry[]);
 
 @Injectable()
 export class CountryService {
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
-  ) {
-  }
+  ) {}
 
   async importData() {
     try {
@@ -29,143 +31,196 @@ export class CountryService {
       const errors: string[] = [];
 
       // Use transaction for data integrity
-      await this.prisma.$transaction(async (tx) => {
-        // Clear existing data
-        await tx.city.deleteMany({});
-        await tx.state.deleteMany({});
-        await tx.timezone.deleteMany({});
-        await tx.translation.deleteMany({});
-        await tx.country.deleteMany({});
-        console.log('Existing data cleared');
+      await this.prisma.$transaction(
+        async (tx) => {
+          // Clear existing data
+          await tx.city.deleteMany({});
+          await tx.state.deleteMany({});
+          await tx.timezone.deleteMany({});
+          await tx.translation.deleteMany({});
+          await tx.country.deleteMany({});
+          console.log('Existing data cleared');
 
-        for (const country of countryData) {
-          try {
-            // Create country
-            console.log(`Importing country: ${country.name}`);
-            const createdCountry = await tx.country.create({
-              data: {
-                name: country.name,
-                iso3: country.iso3,
-                iso2: country.iso2,
-                numeric_code: country.numeric_code,
-                phonecode: country.phonecode,
-                capital: country.capital,
-                currency: country.currency,
-                currency_name: country.currency_name,
-                currency_symbol: country.currency_symbol,
-                tld: country.tld,
-                native: country.native,
-                region: country.region,
-                region_id: country.region_id,
-                subregion: country.subregion,
-                subregion_id: country.subregion_id,
-                nationality: country.nationality,
-                latitude: country.latitude,
-                longitude: country.longitude,
-                emoji: country.emoji,
-                emojiU: country.emojiU,
-              },
-            });
-
-            // Cache country data in Redis
-            await this.redis.set(`country:${createdCountry.id}`, JSON.stringify(createdCountry), '1 month');
-
-            // Create timezones
-            if (country.timezones?.length) {
-              console.log(`Creating ${country.timezones.length} timezones for country: ${country.name}`);
-              await tx.timezone.createMany({
-                data: country.timezones.map(tz => ({
-                  zoneName: tz.zoneName,
-                  gmtOffset: tz.gmtOffset,
-                  gmtOffsetName: tz.gmtOffsetName,
-                  abbreviation: tz.abbreviation,
-                  tzName: tz.tzName,
-                  countryId: createdCountry.id,
-                })),
-              });
-
-              // Cache timezones in Redis
-              await this.redis.set(`country:${createdCountry.id}:timezones`, JSON.stringify(country.timezones), '1 month');
-            }
-
-            // Create translation
-            if (country.translations) {
-              console.log(`Creating translations for country: ${country.name}`);
-              await tx.translation.create({
+          for (const country of countryData) {
+            try {
+              // Create country
+              console.log(`Importing country: ${country.name}`);
+              const createdCountry = await tx.country.create({
                 data: {
-                  ko: country.translations.ko,
-                  ptBR: country.translations['pt-BR'],
-                  pt: country.translations.pt,
-                  nl: country.translations.nl,
-                  hr: country.translations.hr,
-                  fa: country.translations.fa,
-                  de: country.translations.de,
-                  es: country.translations.es,
-                  fr: country.translations.fr,
-                  ja: country.translations.ja,
-                  it: country.translations.it,
-                  zhCN: country.translations['zh-CN'],
-                  tr: country.translations.tr,
-                  ru: country.translations.ru,
-                  uk: country.translations.uk,
-                  pl: country.translations.pl,
-                  countryId: createdCountry.id,
+                  name: country.name,
+                  iso3: country.iso3,
+                  iso2: country.iso2,
+                  numeric_code: country.numeric_code,
+                  phonecode: country.phonecode,
+                  capital: country.capital,
+                  currency: country.currency,
+                  currency_name: country.currency_name,
+                  currency_symbol: country.currency_symbol,
+                  tld: country.tld,
+                  native: country.native,
+                  region: country.region,
+                  region_id: country.region_id,
+                  subregion: country.subregion,
+                  subregion_id: country.subregion_id,
+                  nationality: country.nationality,
+                  latitude: country.latitude,
+                  longitude: country.longitude,
+                  emoji: country.emoji,
+                  emojiU: country.emojiU,
                 },
               });
 
-              // Cache translations in Redis
-              await this.redis.set(`country:${createdCountry.id}:translations`, JSON.stringify(country.translations), '1 month');
-            }
+              // Cache country data in Redis
+              await this.redis.set(
+                `country:${createdCountry.id}`,
+                JSON.stringify(createdCountry),
+                '1 month',
+              );
 
-            // Create states and cities
-            if (country.states?.length) {
-              console.log(`Creating ${country.states.length} states for country: ${country.name}`);
-              for (const state of country.states) {
-                const createdState = await tx.state.create({
+              // Create timezones
+              if (country.timezones?.length) {
+                console.log(
+                  `Creating ${country.timezones.length} timezones for country: ${country.name}`,
+                );
+                await tx.timezone.createMany({
+                  data: country.timezones.map((tz) => ({
+                    zoneName: tz.zoneName,
+                    gmtOffset: tz.gmtOffset,
+                    gmtOffsetName: tz.gmtOffsetName,
+                    abbreviation: tz.abbreviation,
+                    tzName: tz.tzName,
+                    countryId: createdCountry.id,
+                  })),
+                });
+
+                // Cache timezones in Redis
+                await this.redis.set(
+                  `country:${createdCountry.id}:timezones`,
+                  JSON.stringify(country.timezones),
+                  '1 month',
+                );
+              }
+
+              // Create translation
+              if (country.translations) {
+                console.log(
+                  `Creating translations for country: ${country.name}`,
+                );
+                // Safely cast the translations to the required format
+                const translations = country.translations as unknown as {
+                  ko: string;
+                  'pt-BR': string;
+                  pt: string;
+                  nl: string;
+                  hr: string;
+                  fa: string;
+                  de: string;
+                  es: string;
+                  fr: string;
+                  ja: string;
+                  it: string;
+                  'zh-CN': string;
+                  tr: string;
+                  ru: string;
+                  uk: string;
+                  pl: string;
+                };
+
+                await tx.translation.create({
                   data: {
-                    name: state.name,
-                    state_code: state.state_code,
-                    latitude: state.latitude,
-                    longitude: state.longitude,
-                    type: state.type,
+                    ko: translations.ko,
+                    ptBR: translations['pt-BR'],
+                    pt: translations.pt,
+                    nl: translations.nl,
+                    hr: translations.hr || '',
+                    fa: translations.fa,
+                    de: translations.de,
+                    es: translations.es,
+                    fr: translations.fr,
+                    ja: translations.ja,
+                    it: translations.it,
+                    zhCN: translations['zh-CN'],
+                    tr: translations.tr,
+                    ru: translations.ru,
+                    uk: translations.uk,
+                    pl: translations.pl,
                     countryId: createdCountry.id,
                   },
                 });
 
-                totalStates++;
+                // Cache translations in Redis
+                await this.redis.set(
+                  `country:${createdCountry.id}:translations`,
+                  JSON.stringify(country.translations),
+                  '1 month',
+                );
+              }
 
-                // Cache state data in Redis
-                await this.redis.set(`state:${createdState.id}`, JSON.stringify(createdState), '1 month');
-
-                // Create cities for this state
-                if (state.cities?.length) {
-                  console.log(`Creating ${state.cities.length} cities for state: ${state.name}`);
-                  await tx.city.createMany({
-                    data: state.cities.map(city => ({
-                      name: city.name,
-                      latitude: city.latitude,
-                      longitude: city.longitude,
-                      stateId: createdState.id,
-                    })),
+              // Create states and cities
+              if (country.states?.length) {
+                console.log(
+                  `Creating ${country.states.length} states for country: ${country.name}`,
+                );
+                for (const state of country.states) {
+                  const createdState = await tx.state.create({
+                    data: {
+                      name: state.name,
+                      state_code: state.state_code,
+                      latitude: state.latitude,
+                      longitude: state.longitude,
+                      type: state.type,
+                      countryId: createdCountry.id,
+                    },
                   });
 
-                  totalCities += state.cities.length;
+                  totalStates++;
 
-                  // Cache cities for this state in Redis
-                  await this.redis.set(`state:${createdState.id}:cities`, JSON.stringify(state.cities), '1 month');
+                  // Cache state data in Redis
+                  await this.redis.set(
+                    `state:${createdState.id}`,
+                    JSON.stringify(createdState),
+                    '1 month',
+                  );
+
+                  // Create cities for this state
+                  if (state.cities?.length) {
+                    console.log(
+                      `Creating ${state.cities.length} cities for state: ${state.name}`,
+                    );
+                    await tx.city.createMany({
+                      data: state.cities.map((city) => ({
+                        name: city.name,
+                        latitude: city.latitude,
+                        longitude: city.longitude,
+                        stateId: createdState.id,
+                      })),
+                    });
+
+                    totalCities += state.cities.length;
+
+                    // Cache cities for this state in Redis
+                    await this.redis.set(
+                      `state:${createdState.id}:cities`,
+                      JSON.stringify(state.cities),
+                      '1 month',
+                    );
+                  }
                 }
               }
+            } catch (error) {
+              const errorMessage =
+                error instanceof Error ? error.message : String(error);
+              errors.push(`Error importing ${country.name}: ${errorMessage}`);
+              console.error(`Error importing ${country.name}:`, error);
             }
-          } catch (error) {
-            errors.push(`Error importing ${country.name}: ${error.message}`);
-            console.error(`Error importing ${country.name}:`, error);
           }
-        }
-      }, {
-        timeout: 120000000, // Increase to 30 seconds or higher as needed
-        maxWait: 120000, // Maximum amount of time to wait to acquire transaction
-        isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Choose appropriate isolation level
-      });
+        },
+        {
+          timeout: 120000000, // Increase to 30 seconds or higher as needed
+          maxWait: 120000, // Maximum amount of time to wait to acquire transaction
+          isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted, // Choose appropriate isolation level
+        },
+      );
 
       // Invalidate general Redis cache
       console.log('Invalidating general Redis cache...');
@@ -180,43 +235,70 @@ export class CountryService {
         errors: errors.length > 0 ? errors : undefined,
       };
     } catch (error) {
-      console.error('Fatal error during data import:', error.message);
+      console.error(
+        'Fatal error during data import:',
+        error instanceof Error ? error.message : String(error),
+      );
       throw error;
     }
   }
-// Function to get countries with filtering
+  // Function to get countries with filtering
   async getCountries(filterDto: FilterCountryDto) {
-    const { name, iso3, iso2, currency, capital, region, subregion, nationality, q, page, limit } = filterDto;
+    const {
+      name,
+      iso3,
+      iso2,
+      currency,
+      capital,
+      region,
+      subregion,
+      nationality,
+      q,
+      page,
+      limit,
+    } = filterDto;
 
     // Generate cache key based on query parameters
     const cacheKey = `countries:${JSON.stringify(filterDto)}`;
 
     return this.redis.cached(cacheKey, '1 month', async () => {
       // Build WHERE conditions
-      const where: any = {};
+      const where: Prisma.CountryWhereInput = {};
 
-      // Handle specific field filters
-      if (name) where.name = { contains: name, mode: 'insensitive' };
-      if (iso3) where.iso3 = iso3.toUpperCase();
-      if (iso2) where.iso2 = iso2.toUpperCase();
-      if (currency) where.currency = { contains: currency, mode: 'insensitive' };
+      // Handle specific field filters with accent-insensitive search
+      if (name) {
+        where.OR = [
+          { name: { contains: name, mode: 'insensitive' } },
+          { name: { contains: normalizeString(name), mode: 'insensitive' } },
+        ];
+      }
+      if (iso3) where.iso3 = { equals: iso3.toUpperCase() };
+      if (iso2) where.iso2 = { equals: iso2.toUpperCase() };
+      if (currency)
+        where.currency = { contains: currency, mode: 'insensitive' };
       if (capital) where.capital = { contains: capital, mode: 'insensitive' };
       if (region) where.region = { contains: region, mode: 'insensitive' };
-      if (subregion) where.subregion = { contains: subregion, mode: 'insensitive' };
-      if (nationality) where.nationality = { contains: nationality, mode: 'insensitive' };
+      if (subregion)
+        where.subregion = { contains: subregion, mode: 'insensitive' };
+      if (nationality)
+        where.nationality = { contains: nationality, mode: 'insensitive' };
 
-      // Handle general search query
+      // Handle general search query with accent-insensitive search
       if (q) {
+        const normalizedQ = normalizeString(q);
         where.OR = [
           { name: { contains: q, mode: 'insensitive' } },
+          { name: { contains: normalizedQ, mode: 'insensitive' } },
           { iso3: { contains: q, mode: 'insensitive' } },
           { iso2: { contains: q, mode: 'insensitive' } },
           { capital: { contains: q, mode: 'insensitive' } },
+          { capital: { contains: normalizedQ, mode: 'insensitive' } },
           { currency: { contains: q, mode: 'insensitive' } },
           { currency_name: { contains: q, mode: 'insensitive' } },
           { region: { contains: q, mode: 'insensitive' } },
           { subregion: { contains: q, mode: 'insensitive' } },
           { nationality: { contains: q, mode: 'insensitive' } },
+          { nationality: { contains: normalizedQ, mode: 'insensitive' } },
         ];
       }
 
@@ -224,12 +306,48 @@ export class CountryService {
       const total = await this.prisma.country.count({ where });
 
       // Get countries with pagination
-      const data = await this.prisma.country.findMany({
+      let data = await this.prisma.country.findMany({
         where,
         skip: page * limit,
         take: limit,
         orderBy: { name: 'asc' },
       });
+
+      // Put Vietnam at the top
+      if (page === 0) {
+        // Check if Vietnam is in the result set
+        const vietnamIndex = data.findIndex(
+          (country) =>
+            country.name === 'Vietnam' ||
+            country.name === 'Việt Nam' ||
+            country.iso2 === 'VN' ||
+            country.iso3 === 'VNM',
+        );
+
+        // If Vietnam is not in the result set and there are no filters, fetch it separately
+        if (vietnamIndex === -1 && !name && !iso2 && !iso3 && !q) {
+          const vietnam = await this.prisma.country.findFirst({
+            where: {
+              OR: [
+                { name: 'Vietnam' },
+                { name: 'Việt Nam' },
+                { iso2: 'VN' },
+                { iso3: 'VNM' },
+              ],
+            },
+          });
+
+          if (vietnam) {
+            // If Vietnam found, put it at the top
+            data = [vietnam, ...data.filter((c) => c.id !== vietnam.id)];
+          }
+        } else if (vietnamIndex > 0) {
+          // If Vietnam is in the result set but not at the top, move it to the top
+          const vietnam = data[vietnamIndex];
+          data.splice(vietnamIndex, 1);
+          data = [vietnam, ...data];
+        }
+      }
 
       return {
         data,
@@ -238,7 +356,7 @@ export class CountryService {
           page,
           limit,
           pages: Math.ceil(total / limit),
-        }
+        },
       };
     });
   }
@@ -252,18 +370,26 @@ export class CountryService {
 
     return this.redis.cached(cacheKey, '1 month', async () => {
       // Build WHERE conditions
-      const where: any = {};
+      const where: Prisma.StateWhereInput = {};
 
       // Handle specific field filters
-      if (name) where.name = { contains: name, mode: 'insensitive' };
-      if (state_code) where.state_code = { contains: state_code, mode: 'insensitive' };
+      if (name) {
+        where.OR = [
+          { name: { contains: name, mode: 'insensitive' } },
+          { name: { contains: normalizeString(name), mode: 'insensitive' } },
+        ];
+      }
+      if (state_code)
+        where.state_code = { contains: state_code, mode: 'insensitive' };
       if (type) where.type = { contains: type, mode: 'insensitive' };
       if (countryId) where.countryId = parseInt(countryId);
 
       // Handle general search query
       if (q) {
+        const normalizedQ = normalizeString(q);
         where.OR = [
           { name: { contains: q, mode: 'insensitive' } },
+          { name: { contains: normalizedQ, mode: 'insensitive' } },
           { state_code: { contains: q, mode: 'insensitive' } },
           { type: { contains: q, mode: 'insensitive' } },
         ];
@@ -285,9 +411,9 @@ export class CountryService {
               name: true,
               iso3: true,
               iso2: true,
-            }
-          }
-        }
+            },
+          },
+        },
       });
 
       return {
@@ -297,7 +423,7 @@ export class CountryService {
           page,
           limit,
           pages: Math.ceil(total / limit),
-        }
+        },
       };
     });
   }
@@ -311,16 +437,23 @@ export class CountryService {
 
     return this.redis.cached(cacheKey, '1 month', async () => {
       // Build WHERE conditions
-      const where: any = {};
+      const where: Prisma.CityWhereInput = {};
 
       // Handle specific field filters
-      if (name) where.name = { contains: name, mode: 'insensitive' };
+      if (name) {
+        where.OR = [
+          { name: { contains: name, mode: 'insensitive' } },
+          { name: { contains: normalizeString(name), mode: 'insensitive' } },
+        ];
+      }
       if (stateId) where.stateId = parseInt(stateId);
 
       // Handle general search query
       if (q) {
+        const normalizedQ = normalizeString(q);
         where.OR = [
           { name: { contains: q, mode: 'insensitive' } },
+          { name: { contains: normalizedQ, mode: 'insensitive' } },
         ];
       }
 
@@ -345,11 +478,11 @@ export class CountryService {
                   name: true,
                   iso3: true,
                   iso2: true,
-                }
-              }
-            }
-          }
-        }
+                },
+              },
+            },
+          },
+        },
       });
 
       return {
@@ -359,7 +492,7 @@ export class CountryService {
           page,
           limit,
           pages: Math.ceil(total / limit),
-        }
+        },
       };
     });
   }
@@ -374,12 +507,12 @@ export class CountryService {
         include: {
           states: {
             include: {
-              cities: true
-            }
+              cities: true,
+            },
           },
           timezones: true,
-          translations: true
-        }
+          translations: true,
+        },
       });
     });
   }
