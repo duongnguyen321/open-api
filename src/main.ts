@@ -20,14 +20,14 @@ const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) =>
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
-    abortOnError: true,
-    cors: true,
+    abortOnError: false,
+    cors: false,
   });
 
-  app.enableCors({
-    origin: allowedOrigins,
-    credentials: true, // If you need to allow cookies or credentials
-  });
+  // app.enableCors({
+  //   origin: allowedOrigins,
+  //   credentials: true, // If you need to allow cookies or credentials
+  // });
 
   useRequestLogging(app);
 
