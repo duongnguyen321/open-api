@@ -14,20 +14,24 @@ import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 const port = process.env.PORT ?? 3001;
-const allowedOrigins = process.env.CORS_ORIGIN?.split(',').map((origin) =>
-  origin.trim(),
-);
+
+// Check CORS configuration
+const corsOrigin = process.env.CORS_ORIGIN?.trim();
+const allowAllOrigins = corsOrigin === '*';
+const allowedOrigins = allowAllOrigins
+  ? true // Allow all origins
+  : corsOrigin?.split(',').map((origin) => origin.trim());
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     abortOnError: false,
-    cors: false,
+    cors: {
+      origin: allowedOrigins,
+      credentials: true,
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+      allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+    },
   });
-
-  // app.enableCors({
-  //   origin: allowedOrigins,
-  //   credentials: true, // If you need to allow cookies or credentials
-  // });
 
   useRequestLogging(app);
 
@@ -57,7 +61,7 @@ async function bootstrap() {
     .setDescription('API')
     .setVersion('1.0')
     .addBearerAuth()
-    .addServer(process.env.SERVER_URL as string)
+    .addServer(process.env.SERVER_URL || '')
     .setBasePath(AppConstants.GLOBAL_PREFIX)
     .setOpenAPIVersion('3.0.0')
     .build();
