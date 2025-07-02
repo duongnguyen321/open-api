@@ -1,4 +1,4 @@
-import { isEmail, isMongoId } from '@/common/helpers/validate.helper';
+import { isEmail } from '@/common/helpers/validate.helper';
 import { TrackingEmailDto } from '@/mail/dto/trackingEmail.dto';
 import { PrismaService } from '@/prisma/prisma.service';
 import { RedisService } from '@/redis/redis.service';
@@ -50,7 +50,7 @@ export class MailService {
   }
 
   private async changeStatusMail({ email, id }: TrackingEmailDto) {
-    if (!isEmail(email) || !isMongoId(id)) return;
+    if (!isEmail(email)) return;
     const mailRecord = await this.prisma.mailTracking.findUnique({
       where: {
         id,
