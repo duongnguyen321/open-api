@@ -110,3 +110,26 @@ model City {
 
   @@map("cities")
 }
+
+model MailTracking {
+  id        String     @id @default(uuid())
+  recipient String // Email recipient
+  subject   String // Subject of the email
+  status    MailStatus @default(SENT) // Email status: SENT or READ
+  type      MailType // Type of email
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+enum MailType {
+  WELCOME
+  CONTACT
+  RESET_PASSWORD
+  VERIFY_EMAIL
+  OTP
+}
+
+enum MailStatus {
+  SENT
+  READ
+}
