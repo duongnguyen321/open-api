@@ -97,9 +97,9 @@ export class MailService {
     };
   }
 
-  trackingMail(query: TrackingEmailDto) {
+  async trackingMail(query: TrackingEmailDto) {
     try {
-      this.changeStatusMail(query).then();
+      await this.changeStatusMail(query);
     } catch {
       console.error(
         `Error tracking email from ${query.email} with id: ${query.id}`,
