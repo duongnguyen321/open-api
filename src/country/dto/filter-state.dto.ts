@@ -44,15 +44,15 @@ export class FilterStateDto {
   q?: string;
 
   @ApiProperty({
-    description: 'Page number (0-indexed)',
+    description: 'Page number (1-indexed)',
     required: false,
-    default: 0,
+    default: 1,
     type: Number
   })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value) || 0)
+  @Transform(({ value }) => parseInt(value) || 1)
   @IsInt()
-  page?: number = 0;
+  page?: number = 1;
 
   @ApiProperty({
     description: 'Number of items per page',

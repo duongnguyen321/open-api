@@ -51,7 +51,7 @@ export class CountryController {
   }
 
   @Get('states')
-    @ApiOperation({ summary: 'Get all states with filtering options' })
+  @ApiOperation({ summary: 'Get all states with filtering options' })
   @ApiResponse({ status: 200, description: 'List of states with pagination metadata' })
   async getStates(@Query() filterDto: FilterStateDto) {
     const data = await this.countryService.getStates(filterDto);
@@ -68,7 +68,7 @@ export class CountryController {
   }
 
   @Get('cities')
-    @ApiOperation({ summary: 'Get all cities with filtering options' })
+  @ApiOperation({ summary: 'Get all cities with filtering options' })
   @ApiResponse({ status: 200, description: 'List of cities with pagination metadata' })
   async getCities(@Query() filterDto: FilterCityDto) {
     const data = await this.countryService.getCities(filterDto);

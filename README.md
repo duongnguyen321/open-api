@@ -8,11 +8,11 @@ filtering, pagination, and caching capabilities.
 
 ## Features
 
-- **Multiple Data Services**: Starting with detailed geographic data (countries, states, cities)
+- **Multiple Data Services**: Starting with detailed geographic data (countries, states, cities) and email/OTP services
 - **RESTful API Design**: Follows REST principles with standardized responses
 - **Advanced Filtering**: Multiple filter parameters for precise data retrieval
 - **Search Functionality**: Cross-field searching with the `q` parameter
-- **Pagination**: Control result sets with page and limit parameters
+- **Pagination**: Control result sets with page and limit parameters (default page = 1)
 - **Performance Optimization**: Redis caching for high-performance responses
 - **Comprehensive Documentation**: Interactive Swagger documentation
 - **Type Safety**: Fully typed with TypeScript
@@ -35,7 +35,7 @@ GET /countries/cities     # List cities with filters
 **Example Request:**
 
 ```bash
-curl https://open-api.duonguyen.site/countries?name=Vietnam&page=0&limit=10
+curl https://open-api.duonguyen.site/countries?name=Vietnam&page=1&limit=10
 ```
 
 Countries data includes:
@@ -49,6 +49,53 @@ Countries data includes:
 
 For complete documentation of the Geographic API endpoints and parameters, see
 the [Geographic API Documentation](#geographic-api-documentation) section below.
+
+### Email & OTP API
+
+Send transactional emails and one-time passwords (OTP) for verification and authentication.
+
+#### Email Endpoints
+
+```
+GET /mail                  # List sent emails (with filters, pagination)
+GET /mail/tracking         # Track email open (image pixel)
+```
+
+**Query Parameters for /mail:**
+
+| Parameter | Type   | Description               | Example            |
+| --------- | ------ | ------------------------- | ------------------ |
+| email     | string | Filter by recipient email | "user@example.com" |
+| type      | string | Filter by email type      | "OTP"              |
+| status    | string | Filter by email status    | "SENT"             |
+| page      | number | Page number (1-indexed)   | 1                  |
+| limit     | number | Number of items per page  | 10                 |
+
+#### OTP Endpoints
+
+```
+POST /otp                   # Send OTP to email
+POST /otp/validate          # Validate OTP
+```
+
+**Request Body for /otp:**
+
+```
+{
+  "email": "user@example.com",
+  "name": "User Name",
+  "validityPeriod": "5 mins" // optional
+}
+```
+
+**Request Body for /otp/validate:**
+
+```
+{
+  "email": "user@example.com",
+  "otp": "123456"
+}
+```
 
 ### Future APIs (Planned/Coming Soon)
 
@@ -73,7 +120,7 @@ GET /countries
 **Query Parameters:**
 
 | Parameter | Type   | Description                   | Example              |
-|-----------|--------|-------------------------------|----------------------|
+| --------- | ------ | ----------------------------- | -------------------- |
 | name      | string | Filter by country name        | "Vietnam"            |
 | iso3      | string | Filter by ISO3 code           | "VNM"                |
 | iso2      | string | Filter by ISO2 code           | "VN"                 |
@@ -82,7 +129,7 @@ GET /countries
 | region    | string | Filter by region              | "Asia"               |
 | subregion | string | Filter by subregion           | "South-Eastern Asia" |
 | q         | string | Search across multiple fields | "viet"               |
-| page      | number | Page number (0-indexed)       | 0                    |
+| page      | number | Page number (1-indexed)       | 1                    |
 | limit     | number | Number of items per page      | 10                   |
 
 [Full response examples and additional endpoints documentation...]
@@ -95,6 +142,7 @@ The application follows a modular architecture based on NestJS best practices:
 src/
 ├── modules/
 │   ├── country/           # Geographic data API module
+│   ├── mail/              # Email/OTP module
 │   ├── [future-modules]/  # Additional API modules
 ├── core/
 │   ├── prisma/            # Database access module
@@ -135,7 +183,6 @@ Please be respectful of API usage limits. Excessive requests may be throttled.
 For information on setting up a local development environment, running tests, or contributing to the project, please
 visit the [GitHub repository](https://github.com/duongnguyen321/open-api).
 
-
 ---
 
 # API Dữ Liệu Địa Lý
@@ -169,7 +216,7 @@ GET /countries
 **Tham Số Truy Vấn:**
 
 | Tham số   | Kiểu   | Mô tả                       | Ví dụ                |
-|-----------|--------|-----------------------------|----------------------|
+| --------- | ------ | --------------------------- | -------------------- |
 | name      | string | Lọc theo tên quốc gia       | "Vietnam"            |
 | iso3      | string | Lọc theo mã ISO3            | "VNM"                |
 | iso2      | string | Lọc theo mã ISO2            | "VN"                 |
@@ -178,13 +225,13 @@ GET /countries
 | region    | string | Lọc theo khu vực            | "Asia"               |
 | subregion | string | Lọc theo tiểu khu vực       | "South-Eastern Asia" |
 | q         | string | Tìm kiếm trên nhiều trường  | "viet"               |
-| page      | number | Số trang (đánh số từ 0)     | 0                    |
+| page      | number | Số trang (đánh số từ 1)     | 1                    |
 | limit     | number | Số lượng mục trên mỗi trang | 10                   |
 
 **Ví Dụ Yêu Cầu:**
 
 ```bash
-curl https://open-api.duonguyen.site/countries?name=Vietnam&page=0&limit=10
+curl https://open-api.duonguyen.site/countries?name=Vietnam&page=1&limit=10
 ```
 
 **Ví Dụ Phản Hồi:**
@@ -218,7 +265,7 @@ curl https://open-api.duonguyen.site/countries?name=Vietnam&page=0&limit=10
     }
   ],
   "pagination": {
-    "page": 0,
+    "page": 1,
     "limit": 10,
     "total": 1,
     "totalPage": 1,
@@ -338,19 +385,19 @@ GET /countries/states
 **Tham Số Truy Vấn:**
 
 | Tham số    | Kiểu   | Mô tả                       | Ví dụ      |
-|------------|--------|-----------------------------|------------|
+| ---------- | ------ | --------------------------- | ---------- |
 | countryId  | string | Lọc theo ID quốc gia        | "246"      |
 | name       | string | Lọc theo tên tỉnh/thành     | "Hà Nội"   |
 | state_code | string | Lọc theo mã tỉnh/thành      | "HN"       |
 | type       | string | Lọc theo loại               | "province" |
 | q          | string | Tìm kiếm trên nhiều trường  | "hanoi"    |
-| page       | number | Số trang (đánh số từ 0)     | 0          |
+| page       | number | Số trang (đánh số từ 1)     | 1          |
 | limit      | number | Số lượng mục trên mỗi trang | 10         |
 
 **Ví Dụ Yêu Cầu:**
 
 ```bash
-curl https://open-api.duonguyen.site/countries/states?countryId=246&page=0&limit=1
+curl https://open-api.duonguyen.site/countries/states?countryId=246&page=1&limit=1
 ```
 
 **Ví Dụ Phản Hồi:**
@@ -376,7 +423,7 @@ curl https://open-api.duonguyen.site/countries/states?countryId=246&page=0&limit
     }
   ],
   "pagination": {
-    "page": 0,
+    "page": 1,
     "limit": 1,
     "total": 63,
     "totalPage": 63,
@@ -398,17 +445,17 @@ GET /countries/cities
 **Tham Số Truy Vấn:**
 
 | Tham số | Kiểu   | Mô tả                       | Ví dụ     |
-|---------|--------|-----------------------------|-----------|
+| ------- | ------ | --------------------------- | --------- |
 | stateId | string | Lọc theo ID tỉnh/thành      | "5149"    |
 | name    | string | Lọc theo tên thành phố      | "Ba Đình" |
 | q       | string | Tìm kiếm trên nhiều trường  | "ba dinh" |
-| page    | number | Số trang (đánh số từ 0)     | 0         |
+| page    | number | Số trang (đánh số từ 1)     | 1         |
 | limit   | number | Số lượng mục trên mỗi trang | 10        |
 
 **Ví Dụ Yêu Cầu:**
 
 ```bash
-curl https://open-api.duonguyen.site/countries/cities?stateId=5149&page=0&limit=1
+curl https://open-api.duonguyen.site/countries/cities?stateId=5149&page=1&limit=1
 ```
 
 **Ví Dụ Phản Hồi:**
@@ -437,7 +484,7 @@ curl https://open-api.duonguyen.site/countries/cities?stateId=5149&page=0&limit=
     }
   ],
   "pagination": {
-    "page": 0,
+    "page": 1,
     "limit": 1,
     "total": 30,
     "totalPage": 30,

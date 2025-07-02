@@ -1,6 +1,6 @@
-import { IsOptional, IsString, IsInt } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsInt, IsOptional, IsString } from 'class-validator';
 
 export class FilterCountryDto {
   @ApiProperty({
@@ -76,21 +76,21 @@ export class FilterCountryDto {
   q?: string;
 
   @ApiProperty({
-    description: 'Page number (0-indexed)',
+    description: 'Page number (1-indexed)',
     required: false,
-    default: 0,
-    type: Number
+    default: 1,
+    type: Number,
   })
   @IsOptional()
-  @Transform(({ value }) => parseInt(value) || 0)
+  @Transform(({ value }) => parseInt(value) || 1)
   @IsInt()
-  page?: number = 0;
+  page?: number = 1;
 
   @ApiProperty({
     description: 'Number of items per page',
     required: false,
     default: 10,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Transform(({ value }) => parseInt(value) || 10)

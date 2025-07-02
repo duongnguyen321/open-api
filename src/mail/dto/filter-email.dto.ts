@@ -1,37 +1,39 @@
-import { IsOptional, IsString, IsInt } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { MailStatus, MailType } from '@prisma/client';
+import { Transform } from 'class-transformer';
+import { IsEmail, IsEnum, IsInt, IsOptional, IsString } from 'class-validator';
 
-export class FilterCityDto {
+export class FilterEmailDto {
   @ApiProperty({
-    description: 'Filter by city name',
+    description: 'Filter by email',
     required: false,
   })
   @IsOptional()
+  @IsEmail()
   @IsString()
-  name?: string;
+  email?: string;
 
   @ApiProperty({
-    description: 'Filter by state ID',
+    description: 'Filter by type of email',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  stateId?: string;
+  @IsEnum(MailType)
+  type?: MailType;
 
   @ApiProperty({
-    description: 'Search term across multiple fields',
+    description: 'Filter by type of status',
     required: false,
   })
   @IsOptional()
-  @IsString()
-  q?: string;
+  @IsEnum(MailStatus)
+  status?: MailStatus;
 
   @ApiProperty({
     description: 'Page number (1-indexed)',
     required: false,
     default: 1,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Transform(({ value }) => parseInt(value) || 1)
@@ -42,7 +44,7 @@ export class FilterCityDto {
     description: 'Number of items per page',
     required: false,
     default: 10,
-    type: Number
+    type: Number,
   })
   @IsOptional()
   @Transform(({ value }) => parseInt(value) || 10)

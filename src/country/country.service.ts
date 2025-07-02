@@ -19,7 +19,8 @@ export class CountryService {
   constructor(
     private prisma: PrismaService,
     private redis: RedisService,
-  ) {}
+  ) {
+  }
 
   async importData() {
     try {
@@ -242,6 +243,7 @@ export class CountryService {
       throw error;
     }
   }
+
   // Function to get countries with filtering
   async getCountries(filterDto: FilterCountryDto) {
     const {
@@ -308,13 +310,13 @@ export class CountryService {
       // Get countries with pagination
       let data = await this.prisma.country.findMany({
         where,
-        skip: page * limit,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: { name: 'asc' },
       });
 
       // Put Vietnam at the top
-      if (page === 0) {
+      if (page <= 1) {
         // Check if Vietnam is in the result set
         const vietnamIndex = data.findIndex(
           (country) =>
@@ -401,7 +403,7 @@ export class CountryService {
       // Get states with pagination
       const data = await this.prisma.state.findMany({
         where,
-        skip: page * limit,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: { name: 'asc' },
         include: {
@@ -463,7 +465,7 @@ export class CountryService {
       // Get cities with pagination
       const data = await this.prisma.city.findMany({
         where,
-        skip: page * limit,
+        skip: (page - 1) * limit,
         take: limit,
         orderBy: { name: 'asc' },
         include: {
